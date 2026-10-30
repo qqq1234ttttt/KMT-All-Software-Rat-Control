@@ -1,1 +1,1 @@
-CMD: NONE
+CMD: GET_INFO
