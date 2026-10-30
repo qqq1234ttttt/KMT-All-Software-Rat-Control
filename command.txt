@@ -1,1 +1,1 @@
-IDLE
+CMD: READ_SMS
