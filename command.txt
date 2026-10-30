@@ -1,1 +1,1 @@
-CMD: GET_INFO
+IDLE
