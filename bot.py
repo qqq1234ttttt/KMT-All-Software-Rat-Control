@@ -71,12 +71,17 @@ def callback_query(call):
         bot.answer_callback_query(call.id, "Command Updated!")
         bot.send_message(chat_id, msg_text)
 
-# 5. Background Thread & Flask Run
+# 5. Background Thread & Flask Run (Conflict Error မတက်စေရန် ပြင်ဆင်ထားသည်)
 def run_bot():
-    bot.infinity_polling()
+    try:
+        bot.remove_webhook()
+        bot.infinity_polling(none_stop=True, interval=0, timeout=20)
+    except Exception as e:
+        print(f"Polling error: {e}")
 
 if __name__ == "__main__":
     t = threading.Thread(target=run_bot)
+    t.daemon = True
     t.start()
     
     port = int(os.environ.get("PORT", 10000))
