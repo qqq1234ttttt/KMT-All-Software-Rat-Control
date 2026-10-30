@@ -1,1 +1,1 @@
-CMD: IDLE
+CMD: GET_INFO
